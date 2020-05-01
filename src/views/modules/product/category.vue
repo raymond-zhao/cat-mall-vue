@@ -1,34 +1,21 @@
 <template>
   <div>
+    <el-switch v-model="draggable" active-text="允许拖拽" inactive-text="禁止拖拽"></el-switch>
+    <el-button v-if="draggable" @click="batchSave" type="primary" round>批量保存</el-button>
+    <el-button @click="batchDelete" type="danger" round>批量删除</el-button>
     <el-tree :data="menus" :props="defaultProps" :expand-on-click-node="false"
-             show-checkbox node-key="catId" :default-expanded-keys="expandedKey">
+             show-checkbox node-key="catId" :default-expanded-keys="expandedKey"
+             @node-drop="handleDrop" :draggable="draggable" :allow-drop="allowDrop" ref="menuTree">
       <span class="custom-tree-node" slot-scope="{ node, data }">
           <span>{{ node.label }}</span>
           <span>
-            <el-button type="text"
-                       size="mini"
-                       @click="() => edit(data)">
-              Edit
-            </el-button>
-            <el-button v-if="node.level <= 2"
-              type="text"
-              size="mini"
-              @click="() => append(data)">
-              Append
-            </el-button>
-            <el-button v-if="node.childNodes.length == 0"
-              type="text"
-              size="mini"
-              @click="() => remove(node, data)">
-              Delete
-            </el-button>
+            <el-button type="text" size="mini" @click="() => edit(data)">Edit</el-button>
+            <el-button v-if="node.level <= 2" type="text" size="mini" @click="() => append(data)">Append</el-button>
+            <el-button v-if="node.childNodes.length == 0" type="text" size="mini" @click="() => remove(node, data)">Delete</el-button>
           </span>
         </span>
     </el-tree>
-    <el-dialog
-      :title="title"
-      :visible.sync="dialogVisible"
-      width="30%" :close-on-click-modal="false">
+    <el-dialog :title="title" :visible.sync="dialogVisible" width="30%" :close-on-click-modal="false">
       <el-form :model="category">
         <el-form-item label="分类名称">
           <el-input v-model="category.name" autocomplete="off"></el-input>
@@ -52,6 +39,10 @@
   export default {
     data () {
       return {
+        pCid: [],
+        draggable: false,
+        updateNodes: [],
+        maxLevel: 0,
         title: '',
         dialogType: '', // edit,add
         category: {
@@ -74,6 +65,118 @@
       }
     },
     methods: {
+      batchDelete () {
+        let catIds = []
+        let checkedNodes = this.$refs.menuTree.getCheckedNodes()
+        for (let i = 0; i < checkedNodes.length; i++) {
+          catIds.push(checkedNodes[i].catId)
+        }
+        this.$confirm(`确认删除？`, '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.$http({
+            url: this.$http.adornUrl('/product/category/delete'),
+            method: 'post',
+            data: this.$http.adornData(catIds, false)
+          }).then(({data}) => {
+            this.$message({
+              message: '删除成功',
+              type: 'success'
+            })
+            // 刷新菜单
+            this.getMenus()
+          })
+        }).catch(() => {
+
+        })
+        console.log('checkedNodes: ', checkedNodes)
+      },
+      batchSave () {
+        this.$http({
+          url: this.$http.adornUrl('/product/category/update/sort'),
+          method: 'post',
+          data: this.$http.adornData(this.updateNodes, false)
+        }).then(({data}) => {
+          this.$message({
+            message: '修改菜单顺序成功',
+            type: 'success'
+          })
+        })
+        // 4. 刷新菜单
+        this.getMenus()
+        this.expandedKey = this.pCid
+        // 5. 置空 准备重新接收新数据
+        this.updateNodes = []
+        this.maxLevel = 0
+      },
+      /** 收集拖拽信息开始 **/
+      handleDrop (draggingNode, dropNode, dropType, ev) {
+        // 视频 55
+        // 1. 当前结点最新的父结点 ID
+        let pCid = 0
+        let siblings = null
+        if (dropType === 'before' || dropType === 'after') {
+          pCid = dropNode.parent.data.catId === undefined ? 0 : dropNode.parent.data.catId
+          siblings = dropNode.parent.childNodes
+        } else {
+          pCid = dropNode.data.catId
+          siblings = dropNode.childNodes
+        }
+        this.pCid.push(pCid)
+        // 2. 当前拖拽结点的最新顺序
+        for (let i = 0; i < siblings.length; i++) {
+          // siblings[i].data.catId === draggingNode.data.catId ? this.updateNodes.push({ catId: siblings[i].data.catId, sort: i, parentCid: pCid }) : this.updateNodes.push({ catId: siblings[i].data.catId, sort: i })
+          if (siblings[i].data.catId === draggingNode.data.catId) {
+            // 如果遍历的是当前正在拖拽的结点
+            let catLevel = draggingNode.level
+            if (siblings[i].level !== draggingNode.level) {
+              // 当前结点的层级发生变化
+              catLevel = siblings[i].level
+              this.updateChildNodesLevel(siblings[i])
+              // 修改子节点的层级
+            }
+            this.updateNodes.push({ catId: siblings[i].data.catId, sort: i, parentCid: pCid, catLevel: catLevel })
+          } else {
+            this.updateNodes.push({ catId: siblings[i].data.catId, sort: i })
+          }
+        }
+        // 3. 当前拖拽结点的最新层级
+      },
+      updateChildNodesLevel (node) {
+        if (node.childNodes.length > 0) {
+          for (let i = 0; i < node.childNodes.length; i++) {
+            const currentNode = node.childNodes[i].data
+            this.updateNodes.push({ catId: currentNode.catId, catLevel: node.childNodes[i].level })
+            this.updateChildNodesLevel(node.childNodes[i])
+          }
+        }
+      },
+      /** 收集拖拽信息结束 **/
+      allowDrop (draggingNode, dropNode, type) {
+        // 视频 54
+        // 1. 被拖动的当前结点及其所在的父结点总层数不能大于3
+        // 1.1 被拖动的当前结点总层数
+        this.countNodeLevel(draggingNode)
+        let deep = Math.abs(this.maxLevel - draggingNode.level) + 1
+        if (type === 'inner') {
+          return deep + dropNode.level <= 3
+        } else {
+          return deep + dropNode.parent.level <= 3
+        }
+      },
+      countNodeLevel (node) {
+        // 找到所有子结点，求出最大深度
+        if (node.childNodes != null && node.childNodes.length > 0) {
+          for (let i = 0; i < node.childNodes.length; i++) {
+            if (node.childNodes[i].level > this.maxLevel) {
+              this.maxLevel = node.childNodes[i].level
+            }
+            this.countNodeLevel(node.childNodes[i])
+          }
+        }
+      },
       submit () {
         if (this.dialogType === 'add') {
           this.addCategory()
