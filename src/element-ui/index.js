@@ -22,6 +22,7 @@ import {
   Input,
   InputNumber,
   Radio,
+  Image,
   RadioGroup,
   RadioButton,
   Checkbox,
@@ -78,6 +79,8 @@ import {
   Notification
 } from 'element-ui'
 
+Vue.use(Image)
+Vue.use(Pagination)
 Vue.use(Pagination)
 Vue.use(Dialog)
 Vue.use(Autocomplete)
