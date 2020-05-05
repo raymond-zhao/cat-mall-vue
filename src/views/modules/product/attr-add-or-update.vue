@@ -175,7 +175,7 @@ export default {
       this.attrGroups = [];
       this.dataForm.attrGroupId = "";
       this.dataForm.catelogId = path[path.length - 1];
-      if (path && path.length == 3) {
+      if (path && path.length === 3) {
         this.$http({
           url: this.$http.adornUrl(
             `/product/attrgroup/list/${path[path.length - 1]}`
