@@ -99,7 +99,7 @@ export default {
         attrId: 0,
         attrName: "",
         searchType: 0,
-        valueType: 1,
+        valueType: 0,
         icon: "",
         valueSelect: "",
         attrType: 1,

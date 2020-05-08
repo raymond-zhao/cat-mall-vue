@@ -673,9 +673,11 @@ export default {
           method: "get",
           params: this.$http.adornParams({})
         }).then(({ data }) => {
+          console.log("data.data", data.data)
           //先对表单的baseAttrs进行初始化
           data.data.forEach(item => {
             let attrArray = [];
+            console.log(item.attrs)
             item.attrs.forEach(attr => {
               attrArray.push({
                 attrId: attr.attrId,
@@ -687,12 +689,12 @@ export default {
           });
           this.dataResp.steped[0] = 0;
           this.dataResp.attrGroups = data.data;
+
         });
       }
     },
 
     submitSkus() {
-      console.log("~~~~~", JSON.stringify(this.spu));
       this.$confirm("将要提交商品数据，需要一小段时间，是否继续?", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
