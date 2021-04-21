@@ -15,7 +15,7 @@ import PubSub from 'pubsub-js'
 Vue.use(VueCookie)
 Vue.config.productionTip = false
 
-// 非生产环境, 适配mockjs模拟数据                 // api: https://github.com/nuysoft/Mock
+// 非生产环境, 适配 mockjs 模拟数据                 // api: https://github.com/nuysoft/Mock
 if (process.env.NODE_ENV !== 'production') {
   require('@/mock')
 }

@@ -16,9 +16,9 @@
       <el-table-column prop="weight" header-align="center" align="center" label="重量"></el-table-column>
       <el-table-column prop="publishStatus" header-align="center" align="center" label="上架状态">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.publishStatus == 0">新建</el-tag>
-          <el-tag v-if="scope.row.publishStatus == 1">已上架</el-tag>
-          <el-tag v-if="scope.row.publishStatus == 2">已下架</el-tag>
+          <el-tag v-if="scope.row.publishStatus === 0">新建</el-tag>
+          <el-tag v-if="scope.row.publishStatus === 1">已上架</el-tag>
+          <el-tag v-if="scope.row.publishStatus === 2">已下架</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="createTime" header-align="center" align="center" label="创建时间"></el-table-column>
@@ -26,11 +26,17 @@
       <el-table-column fixed="right" header-align="center" align="center" width="150" label="操作">
         <template slot-scope="scope">
           <el-button
-            v-if="scope.row.publishStatus == 0"
+            v-if="scope.row.publishStatus === 0 || scope.row.publishStatus === 2"
             type="text"
             size="small"
             @click="productUp(scope.row.id)"
           >上架</el-button>
+          <el-button
+            v-if="scope.row.publishStatus === 1"
+            type="text"
+            size="small"
+            @click="productUp(scope.row.id)"
+          >下架</el-button>
           <el-button type="text" size="small" @click="attrUpdateShow(scope.row)">规格</el-button>
         </template>
       </el-table-column>
@@ -94,7 +100,6 @@ export default {
       });
     },
     attrUpdateShow(row) {
-      console.log(row);
       this.$router.push({
         path: "/product-attrupdate",
         query: { spuId: row.id, catalogId: row.catalogId }
@@ -143,7 +148,6 @@ export default {
   },
   mounted() {
     this.dataSub = PubSub.subscribe("dataForm", (msg, val) => {
-      console.log("~~~~~", val);
       this.dataForm = val;
       this.getDataList();
     });
